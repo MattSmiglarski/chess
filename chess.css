@@ -1,0 +1,17 @@
+table span { font-size: 72px; }
+table tr { height: 80px; }
+
+table td {
+    width: 80px;
+    border: double black 1px;
+    text-align: center;
+    line-height: 80px;
+    cursor: pointer;
+}
+
+table tr:nth-child(even) td:nth-child(even), table tr:nth-child(odd) td:nth-child(odd) {}
+table tr:nth-child(even) td:nth-child(odd), table tr:nth-child(odd) td:nth-child(even) { background: #d0d0d0; }
+
+td.reverse {    background: green !important; }
+td.select { background: red !important; }
+td.hint { background: blue !important; }
