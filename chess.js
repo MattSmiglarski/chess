@@ -21,18 +21,18 @@ Rules -- rules are the constraints which define the game.
 
 // SECTION: Hacks & Globals
 var pieces = {
-    'white chess king' : '&#9812;',
-    'white chess queen' : '&#9813;',
-    'white chess rook' : '&#9814;',
-    'white chess bishop' : '&#9815;',
-    'white chess knight' : '&#9816;',
-    'white chess pawn' : '&#9817;',
-    'black chess king' : '&#9818;',
-    'black chess queen' : '&#9819;',
-    'black chess rook' : '&#9820;',
-    'black chess bishop' : '&#9821;',
-    'black chess knight' : '&#9822;',
-    'black chess pawn' : '&#9823;'
+    'white chess king' : '\u2654',
+    'white chess queen' : '\u2655',
+    'white chess rook' : '\u2656',
+    'white chess bishop' : '\u2657',
+    'white chess knight' : '\u2658',
+    'white chess pawn' : '\u2659',
+    'black chess king' : '\u265A',
+    'black chess queen' : '\u265B',
+    'black chess rook' : '\u265C',
+    'black chess bishop' : '\u265D',
+    'black chess knight' : '\u265E',
+    'black chess pawn' : '\u265F'
 };
 
 var current_passable_pawn = null;
@@ -45,7 +45,6 @@ var white_piece = /[\u2654-\u2659]/; // Character range regex for white pieces.
 var black_piece = /[\u265A-\u265F]/;
 var regex_select_chess_piece = /^.*([\u2654-\u265F]).*$/;
 
-
 // SECTION: Utilities
 function addClass(el, cls) {
     if (!el.className.match(cls)) {
@@ -55,6 +54,13 @@ function addClass(el, cls) {
 
 function removeClass(el, cls) {
     el.className = el.className.replace(cls, '');
+}
+
+function inArray(value, array) {
+    for (var i=0; i<array.length; i++) {
+	if (array[i] === value) return value;
+    }
+    return null;
 }
 
 // SECTION: Helper functions
@@ -236,17 +242,20 @@ function king_targets(row, col) { // One square in any direction.
 	   ];
 }
 
+/** Any direction */
 function queen_targets(row, col) {
     var result = [].concat(grid_column(col),
-		     grid_row(row),
-		     grid_diagonals(row, col)
-		    );
+			   grid_row(row),
+			   grid_diagonals(row, col)
+			  );
 
     return result.filter(
-	function(x) { return x && rule_path_clear(g.from, x); }
-    );
+	function(x) {
+	    return x && rule_path_clear(g.from, x);
+	});
 }
 
+/** Moves along rank and file */
 function rook_targets(row, col) {
     return [].concat(
 	grid_column(col), grid_row(row)
@@ -255,11 +264,15 @@ function rook_targets(row, col) {
     });
 }
 
+/** Diagonals */
 function bishop_targets(row, col) {
     return grid_diagonals(row, col)
-	.filter(function(x) { return x && rule_path_clear(g.from, x);});
+	.filter(function(x) {
+	    return x && rule_path_clear(g.from, x);
+	});
 }
 
+/** 1 of 8 surrounding cells */
 function knight_targets(row, col) {
     return [ get_cell(row-2, col-1),
 	     get_cell(row-2, col+1),
@@ -272,6 +285,7 @@ function knight_targets(row, col) {
 	   ];
 }
 
+/** single move forward, or single diagonal capture, or en passant, or double initial move */
 function pawn_targets(row, col) {
     var k = g.player === "WHITE"? +1 : -1,
     move_twice = get_cell(row-2*k, col-0),
@@ -292,18 +306,20 @@ function pawn_targets(row, col) {
 	capture_right_cond = (is_capture(capture_right) || targets_passable_pawn(capture_right));
     }
 
+    move_twice_cond = (row === (g.player === "WHITE"? 6 : 1));;
+
     return [
 	move_once,
-	row === (g.player === "WHITE"? 6 : 1) ? move_twice : null,
+	move_twice_cond && move_twice,
 	capture_left_cond && capture_left,
 	capture_right_cond && capture_right
     ].filter(function(x) {
-	return x && rule_pawn_cannot_capture_diagonally_not_even_en_passant(g.from, x);
+	return x;
     });
 }
 
 /** Given a cell, return an array of cells being atttacked. */
-function targets(td) {
+function all_targets(td) {
     var match = td.innerText.replace(regex_select_chess_piece, function(match, m1) { return m1; });
     var result, row, col, i1, i2;
 
@@ -335,8 +351,16 @@ function targets(td) {
     }(td);
 
     return result? result.filter(function(x) {
-	return x && !rule_space_already_occupied_by_same_player(x) && !rule_moving_into_check(x);
+	return x && rule_space_not_already_occupied_by_same_player(x);
     }) : [];
+}
+
+function targets(td) {
+    return all_targets(td).filter(
+	function(x) {
+	    return x && rule_moving_into_check(x);
+	}
+    );
 }
 
 // SECTION: Rules & Validation
@@ -353,18 +377,54 @@ function valid_to_move(td) {
     cond1 = !td.innerText.match(g.player === "WHITE"? white_piece : black_piece);
     if (!cond1) return false;
 
-    cond2 = (targets(g.from).indexOf(td) !=  -1);
-
-    return cond2;
+    cond2 = true;
+    if (!cond2) return false;
+	
+    return targets(g.from).indexOf(td) != -1;
 }
 
-function rule_space_already_occupied_by_same_player(target) {
-    return target.innerText.match(g.player === 'WHITE'? white_piece : black_piece);
+function rule_space_not_already_occupied_by_same_player(target) {
+    var theMatch = (g.player === 'WHITE')? white_piece : black_piece;
+    return !target.innerText.match(theMatch);
+}
+
+function find_piece(piece) {
+    for (i1=0; i1<t.rows.length; i1+=1) {
+	for (i2=0; i2<t.rows[i1].cells.length; i2+=1) {
+	    tempCell = t.rows[i1].cells[i2];
+	    if (tempCell.innerText.match(piece)) return tempCell;
+	}
+    }
+
+    console.log("Programmar error! Piece not found", piece);
+    return null;
 }
 
 function rule_moving_into_check() {
-    // loop pieces
-    // targets(x).contains(find(king))
+    var i1, i2, tempCell, regex, kings_square;
+
+    if (g.player === 'WHITE') {
+	regex = black_piece;
+	kings_square = find_piece(pieces['white chess king']);
+    } else {
+	regex = white_piece;
+	kings_square = find_piece(pieces['black chess king']);
+    }
+
+    for (i1=0; i1<t.rows.length; i1+=1) {
+	for (i2=0; i2<t.rows[i1].cells.length; i2+=1) {
+	    tempCell = t.rows[i1].cells[i2];
+	    if (tempCell.innerText.match(regex)) {
+		// call to all_targets does not filter on checking rules.
+		// This is what we need here (when checking if the king is being targetted; in check.)
+		if (inArray(kings_square, all_targets(tempCell))) {
+		    return false;
+		}
+	    }
+	}
+    }
+
+    return true;
 }
 
 function targets_passable_pawn(target) {
@@ -387,20 +447,13 @@ function targets_passable_pawn(target) {
 }
 
 function rule_pawn_cannot_capture_diagonally_not_even_en_passant(src, target) {
-    var fromRow=src.parentNode.rowIndex, fromCol=src.cellIndex,
-    toRow=target.parentNode.rowIndex, toCol=target.cellIndex;
-
-    if (fromCol != toCol) {
-	return is_capture(target) || targets_passable_pawn(target);
-    } else {
-	return rule_path_clear(src, target) && !is_capture(target);
-    }
 }
 
 function rule_cannot_castle_when_king_or_rook_have_moved() { /* hooks & flags */ }
 
 function rule_castling_out_of_or_across_an_attacked_scare() {
     if (is_castle(from, to)) {
+	true;
     } else {
 	return true;
     }
@@ -470,7 +523,7 @@ function initialise_grid() {
     set_cell(pieces['white chess knight'], 7, 6);
     set_cell(pieces['white chess rook'], 7, 7);
 
-    set_cell(pieces['white chess pawn'], 6, 0);
+//    set_cell(pieces['white chess pawn'], 6, 0);
     set_cell(pieces['white chess pawn'], 6, 1);
     set_cell(pieces['white chess pawn'], 6, 2);
     set_cell(pieces['white chess pawn'], 6, 3);
