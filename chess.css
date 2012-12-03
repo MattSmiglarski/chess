@@ -1,11 +1,10 @@
-table span { font-size: 72px; }
+table span { font-size: 48pt; }
 table tr { height: 80px; }
 
 table td {
     width: 80px;
     border: double black 1px;
     text-align: center;
-    line-height: 80px;
     cursor: pointer;
 }
 
