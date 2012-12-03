@@ -339,6 +339,10 @@ function knight_targets(row, col) {
 	   ];
 }
 
+function is_empty(td) {
+    return !td.innerText.match(regex_select_chess_piece);
+}
+
 /** single move forward, or single diagonal capture, or en passant, or double initial move */
 function pawn_targets(row, col) {
     var k = g.player === "WHITE"? +1 : -1,
@@ -360,10 +364,10 @@ function pawn_targets(row, col) {
 	capture_right_cond = (is_capture(capture_right) || targets_passable_pawn(capture_right));
     }
 
-    move_twice_cond = (row === (g.player === "WHITE"? 6 : 1));;
+    move_twice_cond = (is_empty(move_once) && is_empty(move_twice) && (row === (g.player === "WHITE"? 6 : 1)));
 
     return [
-	!move_once.innerText.match(regex_select_chess_piece) && move_once,
+	is_empty(move_once) && move_once,
 	move_twice_cond && move_twice,
 	capture_left_cond && capture_left,
 	capture_right_cond && capture_right
