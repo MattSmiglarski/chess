@@ -250,6 +250,7 @@ function grid_diagonals(row, col) {
 SECTION: Target Functions
 
 The following functions each return an array of td's given a row & column.
+They must not assume anything about the current player.
  **/
 
 function king_targets(row, col) { // One square in any direction.
@@ -292,7 +293,7 @@ function king_targets(row, col) { // One square in any direction.
 	     castle_target_kings_side,
 	     castle_target_queens_side
 	   ].filter(function(x) {
-	       return x && rule_space_not_already_occupied_by_same_player(get_cell(row, col));
+	       return x && rule_space_not_already_occupied_by_same_player(get_cell(row, col), x);
 	   });
  }
 
@@ -479,6 +480,17 @@ function find_piece(piece) {
 function rule_not_moving_into_check(src, target) {
     var i1, i2, tempCell, regex, kings_square, flag = true, original = target.innerHTML;
 
+/*
+Documented Hack #125431: try out the move by changing the shared state.
+
+PART 1:
+This must be done before looking up the king's square, in case the king is being moved.
+This will almost certainly cause issues when things change, so scope the state properly ASAP!
+*/
+    target.innerHTML = src.innerHTML;
+    src.innerHTML = '&nbsp;';
+/* END HACK PART 1*/
+
     if (g.player === 'WHITE') {
 	regex = black_piece;
 	kings_square = find_piece(pieces['white chess king']);
@@ -487,8 +499,6 @@ function rule_not_moving_into_check(src, target) {
 	kings_square = find_piece(pieces['black chess king']);
     }
 
-    target.innerHTML = src.innerHTML; // really hacky: try out the move by changing the shared state.
-    src.innerText = '&nbsp;';
     for (i1=0; i1<t.rows.length; i1+=1) {
 	for (i2=0; i2<t.rows[i1].cells.length; i2+=1) {
 	    tempCell = t.rows[i1].cells[i2];
@@ -502,9 +512,10 @@ function rule_not_moving_into_check(src, target) {
 	    }
 	}
     }
-    // Reset the state like nothing happened. Hopefully no-one was watching.
-    src.innerHTML = target.innerHTML;;
+/* Documented Hack Part 2: Reset the state like nothing happened (hopefully no-one was watching.)*/
+    src.innerHTML = target.innerHTML;
     target.innerHTML = original;
+/* END HACK PART 2 */
 
     return flag;
 }
@@ -597,7 +608,7 @@ function initialise_grid() {
     set_cell(pieces['white chess pawn'], 6, 2);
     set_cell(pieces['white chess pawn'], 6, 3);
     set_cell(pieces['white chess pawn'], 6, 4);
-    set_cell(pieces['white chess pawn'], 6, 5);
+//    set_cell(pieces['white chess pawn'], 6, 5);
     set_cell(pieces['white chess pawn'], 6, 6);
     set_cell(pieces['white chess pawn'], 6, 7);
 
@@ -613,7 +624,7 @@ function initialise_grid() {
     set_cell(pieces['black chess rook'], 0, 0);
     set_cell(pieces['black chess knight'], 0, 1);
     set_cell(pieces['black chess bishop'], 0, 2);
-    set_cell(pieces['black chess queen'], 0, 3);
+    set_cell(pieces['black chess queen'], 4, 7);
     set_cell(pieces['black chess king'], 0, 4);
     set_cell(pieces['black chess bishop'], 0, 5);
     set_cell(pieces['black chess knight'], 0, 6);
