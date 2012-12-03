@@ -58,7 +58,10 @@ function removeClass(el, cls) {
 
 function inArray(value, array) {
     for (var i=0; i<array.length; i++) {
-	if (array[i] === value) return value;
+	if (array[i] === value) {
+	    return value;
+	}
+
     }
     return null;
 }
@@ -71,10 +74,6 @@ function get_cell(x, y) {
 
 function set_cell(value, x, y) {
     get_cell(x, y).innerHTML = '<span>' + value + '</span>';
-}
-
-function valid_piece(td) {
-    return td.childNodes.length && td.innerText.match(g.player === "WHITE"? white_piece : black_piece);
 }
 
 // SECTION: Controlling logic
@@ -204,10 +203,9 @@ function create_cell_callback_select(td) {
 /** User hovers over a cell; provide hints on surrounding squares. */
 function create_cell_callback(td) {
     return function(evt) {
-	var i,hints;
-	if (valid_piece(td)) {
-	    addClass(td, 'reverse');
-	}
+	var i,hints, valid_piece =  td.childNodes.length && td.innerText.match(g.player === "WHITE"? white_piece : black_piece);
+
+	if (valid_piece) addClass(td, 'reverse');
     }
 }
 
@@ -257,7 +255,7 @@ The following functions each return an array of td's given a row & column.
 function king_targets(row, col) { // One square in any direction.
     var castle_target_kings_side, castle_target_queens_side, target_castle = null;
 
-    if (g.player === 'WHITE') {
+    if (get_cell(row, col).innerText.match(/\u2654/)) {
 	if (row === 7 && col === 4 && !find_piece(pieces['white chess king']).getAttribute('dirty')) {
 	    target_castle = get_cell(7, 0);
 	    if (target_castle.innerText.match(pieces['white chess rook']) && !target_castle.getAttribute('dirty')) {
@@ -293,8 +291,10 @@ function king_targets(row, col) { // One square in any direction.
 	     get_cell(row+1, col+1),
 	     castle_target_kings_side,
 	     castle_target_queens_side
-	   ];
-}
+	   ].filter(function(x) {
+	       return x && rule_space_not_already_occupied_by_same_player(get_cell(row, col));
+	   });
+ }
 
 /** Any direction */
 function queen_targets(row, col) {
@@ -305,7 +305,9 @@ function queen_targets(row, col) {
 
     return result.filter(
 	function(x) {
-	    return x && rule_path_clear(g.from, x);
+	    return x && rule_path_clear(get_cell(row, col), x)
+		&& rule_space_not_already_occupied_by_same_player(get_cell(row, col), x)
+	    ;
 	});
 }
 
@@ -314,7 +316,9 @@ function rook_targets(row, col) {
     return [].concat(
 	grid_column(col), grid_row(row)
     ).filter(function(x) {
-	return x && rule_path_clear(g.from, x);
+	return x && rule_path_clear(get_cell(row, col), x)
+	    && rule_space_not_already_occupied_by_same_player(get_cell(row, col), x)
+	;
     });
 }
 
@@ -322,7 +326,9 @@ function rook_targets(row, col) {
 function bishop_targets(row, col) {
     return grid_diagonals(row, col)
 	.filter(function(x) {
-	    return x && rule_path_clear(g.from, x);
+	    return x && rule_path_clear(get_cell(row, col), x)
+		&& rule_space_not_already_occupied_by_same_player(get_cell(row, col), x)
+	    ;
 	});
 }
 
@@ -336,7 +342,9 @@ function knight_targets(row, col) {
 	     get_cell(row+1, col+2),
 	     get_cell(row+2, col-1),
 	     get_cell(row+2, col+1)	
-	   ];
+	   ].filter(function(x) {
+	       return x && rule_space_not_already_occupied_by_same_player(get_cell(row, col), x);
+	   });
 }
 
 function is_empty(td) {
@@ -345,7 +353,8 @@ function is_empty(td) {
 
 /** single move forward, or single diagonal capture, or en passant, or double initial move */
 function pawn_targets(row, col) {
-    var k = g.player === "WHITE"? +1 : -1,
+    var is_white = get_cell(row, col).innerText.match(white_piece);
+    var k = is_white? +1 : -1,
     move_twice = get_cell(row-2*k, col-0),
     move_once = get_cell(row-1*k, col-0),
     capture_left = get_cell(row-1*k, col-1),
@@ -364,7 +373,7 @@ function pawn_targets(row, col) {
 	capture_right_cond = (is_capture(capture_right) || targets_passable_pawn(capture_right));
     }
 
-    move_twice_cond = (is_empty(move_once) && is_empty(move_twice) && (row === (g.player === "WHITE"? 6 : 1)));
+    move_twice_cond = (is_empty(move_once) && is_empty(move_twice) && (row === (is_white? 6 : 1)));
 
     return [
 	is_empty(move_once) && move_once,
@@ -372,7 +381,7 @@ function pawn_targets(row, col) {
 	capture_left_cond && capture_left,
 	capture_right_cond && capture_right
     ].filter(function(x) {
-	return x;
+	return x && rule_space_not_already_occupied_by_same_player(get_cell(row, col), x);
     });
 }
 
@@ -382,41 +391,41 @@ function all_targets(td) {
     var result, row, col, i1, i2;
 
     result = function(td) {
-    if (match) {
-	row = td.parentNode.rowIndex;
-	col = td.cellIndex;
+	if (match) {
+	    row = td.parentNode.rowIndex;
+	    col = td.cellIndex;
 
-	switch (match) {
+	    switch (match) {
 
-	case '\u2654': { return king_targets(row, col); }
-	case '\u2655': { return queen_targets(row, col); }
-	case '\u2656': { return rook_targets(row, col); }
-	case '\u2657': { return bishop_targets(row, col); }
-	case '\u2658': { return knight_targets(row, col); }
-	case '\u2659': { return pawn_targets(row, col); }
-	case '\u265A': { return king_targets(row, col); }
-	case '\u265B': { return queen_targets(row, col); }
-	case '\u265C': { return rook_targets(row, col); }
-	case '\u265D': { return bishop_targets(row, col); }
-	case '\u265E': { return knight_targets(row, col); }
-	case '\u265F': { return pawn_targets(row, col); }
+	    case '\u2654': { return king_targets(row, col); }
+	    case '\u2655': { return queen_targets(row, col); }
+	    case '\u2656': { return rook_targets(row, col); }
+	    case '\u2657': { return bishop_targets(row, col); }
+	    case '\u2658': { return knight_targets(row, col); }
+	    case '\u2659': { return pawn_targets(row, col); }
+	    case '\u265A': { return king_targets(row, col); }
+	    case '\u265B': { return queen_targets(row, col); }
+	    case '\u265C': { return rook_targets(row, col); }
+	    case '\u265D': { return bishop_targets(row, col); }
+	    case '\u265E': { return knight_targets(row, col); }
+	    case '\u265F': { return pawn_targets(row, col); }
 
-	default: {
-	    console.log('Programmer error! Unknown switch value: ' + match);
+	    default: {
+		console.log('Programmer error! Unknown switch value: ' + match);
+	    }
+	    }
 	}
-	}
-    }
     }(td);
 
     return result? result.filter(function(x) {
-	return x && rule_space_not_already_occupied_by_same_player(x);
+	return x;
     }) : [];
 }
 
 function targets(td) {
     return all_targets(td).filter(
 	function(x) {
-	    return x && rule_moving_into_check(x);
+	    return x && rule_not_moving_into_check(td, x); // slow!
 	}
     );
 }
@@ -437,13 +446,21 @@ function valid_to_move(td) {
 
     cond2 = true;
     if (!cond2) return false;
-	
+    
     return targets(g.from).indexOf(td) != -1;
 }
 
-function rule_space_not_already_occupied_by_same_player(target) {
-    var theMatch = (g.player === 'WHITE')? white_piece : black_piece;
-    return !target.innerText.match(theMatch);
+function rule_space_not_already_occupied_by_same_player(src, target) {
+    var theMatch;
+    if (src.innerText.match(white_piece)) {
+	theMatch = white_piece;
+    } else if (src.innerText.match(black_piece)) {
+	theMatch = black_piece;
+    } else {
+	console.log("Programmer Error! For src, target: ", src, target);
+    }
+
+    return !target || !target.innerText.match(theMatch);
 }
 
 function find_piece(piece) {
@@ -458,8 +475,9 @@ function find_piece(piece) {
     return null;
 }
 
-function rule_moving_into_check() {
-    var i1, i2, tempCell, regex, kings_square;
+/** NB: This is currently the worst part of the code */
+function rule_not_moving_into_check(src, target) {
+    var i1, i2, tempCell, regex, kings_square, flag = true, original = target.innerHTML;
 
     if (g.player === 'WHITE') {
 	regex = black_piece;
@@ -469,6 +487,8 @@ function rule_moving_into_check() {
 	kings_square = find_piece(pieces['black chess king']);
     }
 
+    target.innerHTML = src.innerHTML; // really hacky: try out the move by changing the shared state.
+    src.innerText = '&nbsp;';
     for (i1=0; i1<t.rows.length; i1+=1) {
 	for (i2=0; i2<t.rows[i1].cells.length; i2+=1) {
 	    tempCell = t.rows[i1].cells[i2];
@@ -476,13 +496,17 @@ function rule_moving_into_check() {
 		// call to all_targets does not filter on checking rules.
 		// This is what we need here (when checking if the king is being targetted; in check.)
 		if (inArray(kings_square, all_targets(tempCell))) {
-		    return false;
+		    flag = false;
+		    break;
 		}
 	    }
 	}
     }
+    // Reset the state like nothing happened. Hopefully no-one was watching.
+    src.innerHTML = target.innerHTML;;
+    target.innerHTML = original;
 
-    return true;
+    return flag;
 }
 
 function targets_passable_pawn(target) {
@@ -504,25 +528,12 @@ function targets_passable_pawn(target) {
     return (passingRow === ppRow) && (toCol === ppCol);
 }
 
-function rule_pawn_cannot_capture_diagonally_not_even_en_passant(src, target) {
-}
-
-function rule_cannot_castle_when_king_or_rook_have_moved() { /* hooks & flags */ }
-
-function rule_castling_out_of_or_across_an_attacked_scare() {
-    if (is_castle(from, to)) {
-	true;
-    } else {
-	return true;
-    }
-}
-
-/** Check the route does not contain any blocking pieces. */
+/** Check the route does not contain any blocking pieces, ignoring either end. */
 function rule_path_clear(from, to) {
     var i1,i2,cell,
     fromRow=from.parentNode.rowIndex, fromCol=from.cellIndex,
     toRow=to.parentNode.rowIndex, toCol=to.cellIndex,
-    iv1 = fromRow === toRow? 0 : fromRow > toRow? -1 : +1;
+    iv1 = fromRow === toRow? 0 : fromRow > toRow? -1 : +1,
     iv2 = fromCol === toCol? 0 : fromCol > toCol? -1 : +1;
 
     i1=fromRow+iv1;
