@@ -122,11 +122,10 @@ function piece_hints() {
     }
 }
 
-/** Special case pawn handling. */
+/** SECTION: Special case handling. */
 function pawn_shennanigans(td) {
     if (targets_passable_pawn(td)) { // en passant invocation
-	
-	current_passable_pawn.innerHTML = '&nbsp;';
+	current_passable_pawn.innerHTML = '&nbsp;'; // capture
 	current_passable_pawn = null;
     } else if ((g.from.innerText.match(/\u2659/) && g.from.parentNode.rowIndex === 6) ||
 	       (g.from.innerText.match(/\u265F/) && g.from.parentNode.rowIndex === 1)) {
@@ -134,6 +133,29 @@ function pawn_shennanigans(td) {
     } else {
 	current_passable_pawn = null;		    
     }
+}
+
+function king_shennanigans(td) {
+    var rook_src, rook_dest;
+
+    if (is_castle(g.from, td)) { // castling
+	if (td.cellIndex === 2) {
+	    rook_src = td.previousSibling.previousSibling;
+	    rook_dest = td.nextSibling;
+	} else if (td.cellIndex === 6) {
+	    rook_src = td.nextSibling;
+	    rook_dest = td.previousSibling;
+	}
+		
+	rook_dest.innerHTML = rook_src.innerHTML;
+	rook_src.innerHTML = '&nbsp;';
+    }
+
+    g.from.setAttribute("dirty", true); // The king can no longer castle once it has moved.
+}
+
+function rook_shennanigans(td) {
+    g.from.setAttribute("dirty", true); // The rook can no longer participate in castling once it has moved.
 }
 
 /** Actual move logic. */
@@ -156,13 +178,15 @@ function create_cell_callback_select(td) {
 	    if (valid_to_move(td)) { // Do the move
 		if (g.from.innerText.match(/[\u2659\u265F]/)) { // Pawn being moved
 		    pawn_shennanigans(td);
+		} else if (g.from.innerText.match(/[\u2654\u265A]/)) { // King
+		    king_shennanigans(td);
+		} else if (g.from.innerText.match(/[\u2656\u265C]/)) { // Rook
+		    rook_shennanigans(td);
 		}
 		do_move(td);
 	    } else {
 		/* Here, our user might wants to cancel the current selection and select a new piece.
-		   We let them do this in one go.
-		*/
-
+		   We let them do this in one go. */
 		flag1 = valid_from_move(td) && td != g.from;
 	    }
 
@@ -231,6 +255,34 @@ The following functions each return an array of td's given a row & column.
  **/
 
 function king_targets(row, col) { // One square in any direction.
+    var castle_target_kings_side, castle_target_queens_side, target_castle = null;
+
+    if (g.player === 'WHITE') {
+	if (row === 7 && col === 4 && !find_piece(pieces['white chess king']).getAttribute('dirty')) {
+	    target_castle = get_cell(7, 0);
+	    if (target_castle.innerText.match(pieces['white chess rook']) && !target_castle.getAttribute('dirty')) {
+		castle_target_kings_side = get_cell(7, 2);
+	    }
+
+	    target_castle = get_cell(7, 7);
+	    if (target_castle.innerText.match(pieces['white chess rook']) && !target_castle.getAttribute('dirty')) {
+		castle_target_queens_side = get_cell(7, 6);
+	    }
+	}
+    } else {
+	if (row === 0 && col === 4 && !find_piece(pieces['black chess king']).getAttribute('dirty')) {
+	    target_castle = get_cell(0, 0);
+	    if (target_castle.innerText.match(pieces['black chess rook']) && !target_castle.getAttribute('dirty')) {
+		castle_target_queens_side = get_cell(0, 2);
+	    }
+
+	    target_castle = get_cell(0, 7);
+	    if (target_castle.innerText.match(pieces['black chess rook']) && !target_castle.getAttribute('dirty')) {
+		castle_target_kings_side = get_cell(0, 6);
+	    }
+	}
+    }
+
     return [ get_cell(row-1, col-1),
 	     get_cell(row-1, col-0),
 	     get_cell(row-1, col+1),
@@ -238,7 +290,9 @@ function king_targets(row, col) { // One square in any direction.
 	     get_cell(row-0, col+1),
 	     get_cell(row+1, col-1),
 	     get_cell(row+1, col-0),
-	     get_cell(row+1, col+1)
+	     get_cell(row+1, col+1),
+	     castle_target_kings_side,
+	     castle_target_queens_side
 	   ];
 }
 
@@ -309,7 +363,7 @@ function pawn_targets(row, col) {
     move_twice_cond = (row === (g.player === "WHITE"? 6 : 1));;
 
     return [
-	move_once,
+	!move_once.innerText.match(regex_select_chess_piece) && move_once,
 	move_twice_cond && move_twice,
 	capture_left_cond && capture_left,
 	capture_right_cond && capture_right
@@ -495,8 +549,8 @@ function is_capture(target) {
 }
 
 function is_castle(src, target) {
-    var fromRow=from.parentNode.rowIndex, fromCol=from.cellIndex,
-    toRow=to.parentNode.rowIndex, toCol=to.cellIndex;
+    var fromRow=src.parentNode.rowIndex, fromCol=src.cellIndex,
+    toRow=target.parentNode.rowIndex, toCol=target.cellIndex;
 
     return (toRow == 0 && toCol === 2) ||
 	(toRow === 0 && toCol === 6) ||
@@ -523,7 +577,7 @@ function initialise_grid() {
     set_cell(pieces['white chess knight'], 7, 6);
     set_cell(pieces['white chess rook'], 7, 7);
 
-//    set_cell(pieces['white chess pawn'], 6, 0);
+    set_cell(pieces['white chess pawn'], 6, 0);
     set_cell(pieces['white chess pawn'], 6, 1);
     set_cell(pieces['white chess pawn'], 6, 2);
     set_cell(pieces['white chess pawn'], 6, 3);
