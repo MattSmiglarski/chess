@@ -340,7 +340,7 @@ function knight_targets(row, col) {
 }
 
 function is_empty(td) {
-    return !td.innerText.match(regex_select_chess_piece);
+    return td && !td.innerText.match(regex_select_chess_piece);
 }
 
 /** single move forward, or single diagonal capture, or en passant, or double initial move */
