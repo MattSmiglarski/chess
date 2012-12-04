@@ -11,6 +11,6 @@ table td {
 table tr:nth-child(even) td:nth-child(even), table tr:nth-child(odd) td:nth-child(odd) {}
 table tr:nth-child(even) td:nth-child(odd), table tr:nth-child(odd) td:nth-child(even) { background: #d0d0d0; }
 
-td.reverse {    background: green !important; }
+td.reverse { background: green !important; }
 td.select { background: red !important; }
 td.hint { background: blue !important; }

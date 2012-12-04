@@ -1,0 +1,13 @@
+* Chess. JavaScript; No dependencies.
+DOM widget for board games.
+
+* Running
+git clone https://github.com/MattSmiglarski/chess.git && cd chess && php -S localhost:8001
+
+* TODO
+End game
+Promotions
+Capture areas & game status
+Shatranj
+API
+
