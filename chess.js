@@ -42,13 +42,31 @@ var regex_select_chess_piece = /^.*([\u2654-\u265F]).*$/;
 
 var Board = (function() {
 
-    function _initialise(iniitial_array) {
-	var i1, i2;
-	for (i1=0; i1<8; i1+=1) {
-	    for (i2=0; i2<8; i2+=1) {
-		_set_cell(pieces[iniitial_array[i1][i2]], i1, i2);
+    function _initialise(initial_array) {
+	var i1, i2, row, row_el, table_el, el = document.createElement('tbody');
+
+	for (i1=0; i1<initial_array.length; i1+=1) {
+	    row_el = document.createElement('tr');
+	    el.appendChild(row_el);
+	    for (i2=0; i2<initial_array[i1].length; i2+=1) {
+		row_el.appendChild(document.createElement('td'));;
 	    }
 	}
+	table_el = document.createElement('table');
+	table_el.appendChild(el);
+	addClass(table_el, 'unselectable');
+	document.body.appendChild(table_el);
+
+	t = el; // legacy hack
+
+
+	for (i1=0; i1<initial_array.length; i1+=1) {
+	    row = initial_array[i1];
+	    for (i2=0; i2<row.length; i2+=1) {
+		_set_cell(pieces[row[i2]], i1, i2);
+	    }
+	}
+
     }
 
     function _do_move(td) {
@@ -63,7 +81,7 @@ var Board = (function() {
     }
 
     function _set_cell(value, x, y) {
-	_get_cell(x, y).innerHTML = value || '&nbsp;';
+	return _get_cell(x, y).innerHTML = value || '&nbsp;';
     }
 
     function _get_value(td) {
@@ -636,7 +654,7 @@ var Rules = (function() {
 }());
 
 function bootstrap() {
-    var empty_row = [,,,,,,,];
+    var empty_row = new Array(8);
 
     var initial_array = [
 	['black chess rook', 'black chess knight', 'black chess bishop', 'black chess queen', 'black chess king', 'black chess bishop', 'black chess knight', 'black chess rook'],
@@ -651,7 +669,6 @@ function bootstrap() {
 
     initial_array[6][1] = 'black chess pawn';
 
-    t = t || document.body.getElementsByTagName('table')[0];
     Board.initialise(initial_array);
     Board.piece_hints();
 }

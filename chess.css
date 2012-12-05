@@ -14,3 +14,8 @@ table tr:nth-child(even) td:nth-child(odd), table tr:nth-child(odd) td:nth-child
 td.reverse { background: green !important; }
 td.select { background: red !important; }
 td.hint { background: blue !important; }
+
+.unselectable {
+    /* Also see the onselectstart event */
+    -webkit-user-select: none;
+}
