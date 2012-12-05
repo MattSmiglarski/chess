@@ -2,11 +2,9 @@
 Chess.
 ====================================
 
-This script displays chess pieces as unicode characters on a HTML table.
+Unicode characters on a HTML table.
 
-A piece is dropped onto the square by writing the chess piece's Unicode character into the cell. This is to avoid synchronising state.
-
-As a result inspection of a cell can be performed by character range regexes. This is probably temporary and arguably a disadvantage, but it is quite cool.
+A piece is dropped onto the square by writing the chess piece's Unicode character into the cell. This is used for the state.
 
 SECTION: CONCEPTS
 ==================
@@ -65,7 +63,7 @@ var Board = (function() {
     }
 
     function _set_cell(value, x, y) {
-	_get_cell(x, y).innerHTML = value? '<span>' + value + '</span>' : '&nbsp;';
+	_get_cell(x, y).innerHTML = value || '&nbsp;';
     }
 
     function _get_value(td) {
@@ -413,14 +411,23 @@ var Pieces = (function() {
 	}
 	
 	,shennanigans: function(td) {
-	    if (Chess.targets_passable_pawn(td)) { // en passant invocation
+	    var is_white = g.from.innerText.match(/\u2659/);
+	    var is_black = g.from.innerText.match(/\u265F/);
+	    var from_row = g.from.parentNode.rowIndex, to_row = td.parentNode.rowIndex;
+
+	    var cond_passed_pawn_capture = Chess.targets_passable_pawn(td); // annoyingly, have to check this first.
+
+	    current_passable_pawn = null;
+	    if (cond_passed_pawn_capture) {
 		current_passable_pawn.innerHTML = '&nbsp;'; // capture
-		current_passable_pawn = null;
-	    } else if ((g.from.innerText.match(/\u2659/) && g.from.parentNode.rowIndex === 6) ||
-		       (g.from.innerText.match(/\u265F/) && g.from.parentNode.rowIndex === 1)) {
+	    } else if ((is_white && from_row === 6) || (is_black && from_row === 1)) {
 		current_passable_pawn = td; // en passant setup
 	    } else {
-		current_passable_pawn = null;		    
+		if (is_white && to_row === 0) { // promotion
+		    g.from.innerText = g.from.innerText.replace(/\u2659/, '\u2655');
+		} else if (is_black && to_row === 7) {
+		    g.from.innerText = g.from.innerText.replace(/\u265F/, '\u265B');
+		}
 	    }
 	}
     }
@@ -641,6 +648,8 @@ function bootstrap() {
 	['white chess pawn', 'white chess pawn', 'white chess pawn', 'white chess pawn', 'white chess pawn', 'white chess pawn', 'white chess pawn', 'white chess pawn'],
 	['white chess rook', 'white chess knight', 'white chess bishop', 'white chess queen', 'white chess king', 'white chess bishop', 'white chess knight', 'white chess rook']
     ];
+
+    initial_array[6][1] = 'black chess pawn';
 
     t = t || document.body.getElementsByTagName('table')[0];
     Board.initialise(initial_array);

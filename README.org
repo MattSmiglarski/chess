@@ -1,13 +1,14 @@
-* Chess. JavaScript; No dependencies.
+* Chess. JavaScript; no dependencies.
 DOM widget for board games.
+Only works on WebKit, for now.
 
 * Running
 git clone https://github.com/MattSmiglarski/chess.git && cd chess && php -S localhost:8001
+(or something)
 
-* TODO
-End game
-Promotions
+* TODO Todo list
 Capture areas & game status
+Play over a websocket
 Shatranj
-API
+
 
