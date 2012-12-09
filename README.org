@@ -2,10 +2,6 @@
 DOM widget for board games.
 Only works on WebKit, for now.
 
-* Running
-git clone https://github.com/MattSmiglarski/chess.git && cd chess && php -S localhost:8001
-(or something)
-
 * TODO Todo list
 Capture areas & game status
 Play over a websocket
