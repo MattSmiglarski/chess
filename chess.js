@@ -1,3 +1,4 @@
+var b; // TEMPHACK
 var pieces = {
     'white chess king' : '\u2654',
     'white chess queen' : '\u2655',
@@ -55,6 +56,7 @@ function createChessGame() {
 
     var empty_row = new Array(8);
     var board = new Board(8, 8);
+    b = board; // TEMPHACK
     var initial_array = [
 	['black chess rook', 'black chess knight', 'black chess bishop', 'black chess queen', 'black chess king', 'black chess bishop', 'black chess knight', 'black chess rook'],
 	['black chess pawn', 'black chess pawn', 'black chess pawn', 'black chess pawn', 'black chess pawn', 'black chess pawn', 'black chess pawn', 'black chess pawn'],

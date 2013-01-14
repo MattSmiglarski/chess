@@ -177,8 +177,26 @@ function Board() {
         );
     }
 
+    function apply_move(fromY, fromX, toY, toX) { // FIXME: Inconsistent ordering of arguments
+	var from_cell = _get_cell(fromX, fromY);
+	var to_cell = _get_cell(toX, toY);
+
+	if (!_valid_from_move(from_cell)) {
+	    console.log("Invalid move!", from_cell);
+	} else {
+	    _select(from_cell);
+	    if (!_valid_to_move(to_cell)) {
+		console.log("Invalid target!", to_cell);
+	    } else {
+		_do_shennanigans(to_cell);
+		_do_move(to_cell);
+		_deselect();
+	    }
+	}
+    }
+
     function _create_cell_callback_select(td) {
-		/** User clicks a cell; behave appropriately. */
+	/** User clicks a cell; behave appropriately. */
 	return function(evt) {
 	    var flag1;
 
@@ -187,11 +205,17 @@ function Board() {
 		_valid_from_move(td) && _select(td) || _indicate_error(td);
 		break;
 	    } case 'FROM_SELECTED': {
-		if (_valid_to_move(td)) {
+		if (ws) { // HACKEDFIX: websockets
+		    var fromRow=from.parentNode.rowIndex, fromCol=from.cellIndex,
+		    toRow=td.parentNode.rowIndex, toCol=td.cellIndex;
+		    var raw_data=[fromCol, fromRow, toCol, toRow];
+		    ws.send("[" + raw_data.toString() + "]");
+		    _deselect();
+		} else if (_valid_to_move(td)) {
 		    _do_shennanigans(td);
 		    _do_move(td);
 		} else {
-		    /* Here, our user might wants to cancel the current selection and select a new piece.
+		    /* Here, our user wants to cancel the current selection and select a new piece.
 		       We let them do this in one go (unless the same piece is being deselected.) */
 		    flag1 = _valid_from_move(td) && td != from;
 		}
@@ -276,6 +300,7 @@ function Board() {
     // Declare public functions
     return {
 	initialise: _initialise,
+	apply_move: apply_move,
 	set_cell: _set_cell,
 	get_cell: _get_cell,
 	get_value: _get_value,
