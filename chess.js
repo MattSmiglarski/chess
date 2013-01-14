@@ -79,7 +79,7 @@ function createChessGame() {
 	    ppRow=board.current_passable_pawn.parentNode.rowIndex;
 	    ppCol=board.current_passable_pawn.cellIndex;
 
-	    if (board.current_player() === "WHITE") {
+	    if (board.current_player().is_white()) {
 		passingRow = toRow + 1;
 	    } else {
 		passingRow = toRow - 1;
@@ -100,21 +100,22 @@ function createChessGame() {
 
 	board.is_endgame = function() {
 	    var regex, i1, i2, tempCell;
-	    if (g.player === 'WHITE') {
-            regex = white_piece;
-        } else {
-            regex = black_piece;
+	    
+	    if (g.player.is_white()) {
+		regex = white_piece;
+            } else {
+		regex = black_piece;
 	    }
 
 	    for (i1=0; i1<7; i1+=1) {
-            for (i2=0; i2<7; i2+=1) {
-                tempCell = board.get_cell(i1, i2);
-                if (tempCell.innerend_HTML.match(regex)) {
-                if (board.all_targets(tempCell).length > 0) {
-                    return false;
-                }
-                }
-            }
+		for (i2=0; i2<7; i2+=1) {
+                    tempCell = board.get_cell(i1, i2);
+                    if (tempCell.innerend_HTML.match(regex)) {
+			if (board.all_targets(tempCell).length > 0) {
+			    return false;
+			}
+                    }
+		}
 	    }
 
 	    return true;
