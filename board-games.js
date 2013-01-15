@@ -205,15 +205,17 @@ function Board() {
 		_valid_from_move(td) && _select(td) || _indicate_error(td);
 		break;
 	    } case 'FROM_SELECTED': {
-		if (ws) { // HACKEDFIX: websockets
-		    var fromRow=from.parentNode.rowIndex, fromCol=from.cellIndex,
-		    toRow=td.parentNode.rowIndex, toCol=td.cellIndex;
-		    var raw_data=[fromCol, fromRow, toCol, toRow];
-		    ws.send("[" + raw_data.toString() + "]");
+		if (_valid_to_move(td)) {
+		    if (ws) { // HACKEDFIX: websockets
+			var fromRow=from.parentNode.rowIndex, fromCol=from.cellIndex,
+			toRow=td.parentNode.rowIndex, toCol=td.cellIndex;
+			var raw_data=[fromCol, fromRow, toCol, toRow];
+			ws.send("[" + raw_data.toString() + "]");
+		    } else {
+			_do_shennanigans(td);
+			_do_move(td);
+		    }
 		    _deselect();
-		} else if (_valid_to_move(td)) {
-		    _do_shennanigans(td);
-		    _do_move(td);
 		} else {
 		    /* Here, our user wants to cancel the current selection and select a new piece.
 		       We let them do this in one go (unless the same piece is being deselected.) */
