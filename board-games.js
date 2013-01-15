@@ -23,20 +23,28 @@ var white_piece = /[\u2654-\u2659]/; // Character range regex for white pieces.
 var black_piece = /[\u265A-\u265F]/;
 var regex_select_chess_piece = /^.*([\u2654-\u265F]).*$/;
 
+function Player(type) {
+
+    this.passable_pawn = null;
+
+    return {
+	is_white: function() { return type === "WHITE"; }
+    };
+}
+
 function Board() {
 
+    var white = new Player("WHITE"), black = new Player("BLACK");
     var board; // FIXME: Hacked in fix.
     var last_move;
     var from;
-    var current_player = "WHITE";
     var t;
-    var g = { // depredcated. All this is deprecated.
-        "player" : "WHITE",
+    var g = { // deprecated. All this is deprecated.
+        "player" : white,
         "phase" : "INITIAL",
     };
     var white_piece = /[\u2654-\u2659]/; // Character range regex for white pieces.
     var black_piece = /[\u265A-\u265F]/;
-    var regex_select_chess_piece = /^.*([\u2654-\u265F]).*$/;
     var width, height;
     var preconditions = Array(
         function(src, target) { return board.space_not_already_occupied_by_same_player(src, target); }
@@ -76,7 +84,7 @@ function Board() {
     }
     
     function _next_player() {
-        g.player = _current_player() === "WHITE"? "BLACK" : "WHITE";
+        g.player = _current_player().is_white()? black : white;
     }
 
     function is_empty(td) {
@@ -86,8 +94,7 @@ function Board() {
     function _do_move(td) {
 	td.innerHTML = from.innerHTML;
 	from.innerHTML = '';
-    _next_player();
-    // hints
+	_next_player();
 	last_move = td;
     }
 
@@ -236,16 +243,14 @@ function Board() {
     function _create_cell_callback(td) {
         return function(evt) {
             var i,hints, valid_piece =  td.childNodes.length && 
-            td.innerHTML.match(_current_player() === "WHITE"?
-                white_piece : black_piece);
-
+            td.innerHTML.match(_current_player().is_white()? white_piece : black_piece);
             if (valid_piece) addClass(td, 'reverse');
         }    
     }
 
     /** Cleanup hints */
     function _create_cell_callback_cancel(td) {
-        return function(evt) { removeClass(td, 'reverse'); }
+        return function(evt) { removeClass(td, 'reverse'); };
     }
 
     /** Select entire column */
@@ -288,7 +293,7 @@ function Board() {
 	}
 
     function _valid_from_move(td) {
-	return td.innerHTML && td.innerHTML.match(g.player === "WHITE"? white_piece : black_piece);
+	return td.innerHTML && td.innerHTML.match(g.player.is_white()? white_piece : black_piece);
     }
 
     function _indicate_error() {}
@@ -474,7 +479,7 @@ function game_not_moving_into_check(board, src, target) {
 	src.innerHTML = '&nbsp;';
 	/* END HACK PART 1*/
 
-	if (board.current_player() === 'WHITE') {
+	if (board.current_player().is_white()) {
 	    regex = black_piece;
 	    kings_square = board.find_piece(pieces['white chess king']);
 	} else {
