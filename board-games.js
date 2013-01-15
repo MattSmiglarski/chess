@@ -215,7 +215,6 @@ function Board() {
 			_do_shennanigans(td);
 			_do_move(td);
 		    }
-		    _deselect();
 		} else {
 		    /* Here, our user wants to cancel the current selection and select a new piece.
 		       We let them do this in one go (unless the same piece is being deselected.) */
